@@ -4,6 +4,7 @@ import Navbar from '../Components/Navbar';
 import ShopPage from './ShopPage';
 import Footer from '../Components/Footer';
 
+
 function AllShop() {
   return (
     <div>
