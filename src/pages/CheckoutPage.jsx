@@ -1,68 +1,96 @@
-import React, { useState } from "react";
-import { Heart, Share2, ChevronRight } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Heart, Share2, ChevronRight, ArrowLeft } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export default function ProductDetail() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  const product = location.state?.product;
+
+  // Redirect if accessed directly without product data
+  useEffect(() => {
+    if (!product) {
+      navigate("/shop");
+    }
+  }, [product, navigate]);
+
+  if (!product) return null;
+
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedColor, setSelectedColor] = useState("bulgandry muda");
-  const [selectedSize, setSelectedSize] = useState("");
+  const [selectedColor, setSelectedColor] = useState(product.colors[0] || "");
+  const [selectedSize, setSelectedSize] = useState(product.sizes[0] || "");
   const [isFavorite, setIsFavorite] = useState(false);
 
-  const images = [
-    "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400",
-    "https://images.unsplash.com/photo-1578932750355-5eb30ece487a?w=400",
-    "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400",
-    "https://images.unsplash.com/photo-1578932750355-5eb30ece487a?w=400",
-    "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400",
-  ];
+  // Use the same image for thumbnails since we only have one image per product for now
+  const images = [product.image, product.image, product.image];
 
-  const colors = [
-    { name: "bulgandry tua", color: "bg-red-900" },
-    { name: "bulgandry muda", color: "bg-red-400" },
-    { name: "maroon", color: "bg-red-950" },
-    { name: "cream", color: "bg-amber-100" },
-    { name: "misty", color: "bg-gray-300" },
-    { name: "gren lime", color: "bg-lime-500" },
-    { name: "Hitam", color: "bg-black" },
-    { name: "begie", color: "bg-amber-200" },
-    { name: "hijau army", color: "bg-green-800" },
-    { name: "denim", color: "bg-blue-600" },
-    { name: "mins", color: "bg-teal-400" },
-    { name: "navy", color: "bg-blue-900" },
-    { name: "kubus", color: "bg-gray-500" },
-    { name: "Lilac", color: "bg-purple-300" },
-    { name: "dasty pink", color: "bg-pink-300" },
-    { name: "hijau botol", color: "bg-green-700" },
-    { name: "Olive", color: "bg-yellow-700" },
-  ];
+  const handleAddToCart = () => {
+    if (!selectedSize) {
+      alert("Silakan pilih ukuran terlebih dahulu");
+      return;
+    }
+    if (!selectedColor) {
+      alert("Silakan pilih warna terlebih dahulu");
+      return;
+    }
 
-  const sizes = ["M", "L", "XL", "XXL"];
+    const savedCart = sessionStorage.getItem("thriftShopCart");
+    const cart = savedCart ? JSON.parse(savedCart) : [];
+
+    const newItem = {
+      id: Date.now(), // unique ID for cart item
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      size: selectedSize,
+      color: selectedColor,
+      material: product.materials ? product.materials[0] : "Bahan standar",
+      quantity: 1,
+    };
+
+    cart.push(newItem);
+    sessionStorage.setItem("thriftShopCart", JSON.stringify(cart));
+    
+    // Redirect to cart
+    navigate("/cart");
+  };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 bg-white">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="max-w-7xl mx-auto p-4 md:p-8 bg-gray-50 min-h-screen">
+      <button 
+        onClick={() => navigate(-1)} 
+        className="flex items-center gap-2 text-gray-600 hover:text-blue-950 mb-6 transition"
+      >
+        <ArrowLeft size={20} />
+        Kembali ke Toko
+      </button>
+
+      <div className="bg-white rounded-2xl shadow-sm p-4 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-10">
         {/* Left Side - Images */}
         <div className="space-y-4">
-          <div className="relative bg-gray-100 rounded-lg overflow-hidden aspect-square">
+          <div className="relative bg-gray-100 rounded-xl overflow-hidden aspect-square flex items-center justify-center">
             <img
               src={images[selectedImage]}
-              alt="Product"
+              alt={product.name}
               className="w-full h-full object-cover"
             />
-            <span className="absolute top-3 left-3 bg-red-600 text-white text-xs px-2 py-1 rounded">
-              Sale
+            <span className="absolute top-4 left-4 bg-red-600 text-white text-xs px-3 py-1.5 rounded-full font-semibold shadow-sm">
+              Tersedia
             </span>
           </div>
 
           {/* Thumbnail Images */}
-          <div className="flex gap-2 overflow-x-auto">
+          <div className="flex gap-3 overflow-x-auto pb-2">
             {images.map((img, index) => (
               <button
                 key={index}
                 onClick={() => setSelectedImage(index)}
-                className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${
+                className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
                   selectedImage === index
-                    ? "border-orange-500"
-                    : "border-gray-200"
+                    ? "border-blue-950 opacity-100"
+                    : "border-gray-200 opacity-60 hover:opacity-100"
                 }`}
               >
                 <img
@@ -75,169 +103,124 @@ export default function ProductDetail() {
           </div>
 
           {/* Share and Favorite */}
-          <div className="flex items-center gap-4 pt-2">
-            <span className="text-sm text-gray-600">Share:</span>
-            <div className="flex gap-2">
-              <button className="w-8 h-8 rounded-full bg-blue-400 flex items-center justify-center text-white hover:bg-blue-500">
-                <Share2 size={16} />
-              </button>
-              <button className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white hover:bg-blue-700">
-                f
-              </button>
-              <button className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white hover:bg-red-600">
-                P
-              </button>
-              <button className="w-8 h-8 rounded-full bg-black flex items-center justify-center text-white hover:bg-gray-800">
-                ✕
-              </button>
+          <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-600">Bagikan:</span>
+              <div className="flex gap-2">
+                <button className="w-9 h-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition">
+                  <Share2 size={18} />
+                </button>
+              </div>
             </div>
             <button
               onClick={() => setIsFavorite(!isFavorite)}
-              className="ml-auto flex items-center gap-2 text-gray-600 hover:text-red-500"
+              className={`flex items-center gap-2 font-medium transition ${isFavorite ? 'text-red-500' : 'text-gray-500 hover:text-red-500'}`}
             >
-              <Heart size={20} fill={isFavorite ? "currentColor" : "none"} />
-              <span className="text-sm">Favorit (895)</span>
+              <Heart size={24} fill={isFavorite ? "currentColor" : "none"} strokeWidth={isFavorite ? 0 : 2} />
+              <span className="text-sm">Simpan</span>
             </button>
           </div>
         </div>
 
         {/* Right Side - Product Info */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
-            <span className="inline-block bg-red-600 text-white text-xs px-2 py-0.5 rounded mb-2">
-              Sale
+            <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-1 rounded mb-3">
+              {product.category}
             </span>
-            <h1 className="text-xl font-medium text-gray-800 leading-tight">
-              SWEATER HOODIE PULL AND BEAR JACKET PULLOVER SABLON EMBOSSED FONT
-              TIMBUL HODIE PRIA WANITA UNISEX COD
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight mb-2">
+              {product.name}
             </h1>
+            <p className="text-gray-600">
+              {product.description || "Produk thrift berkualitas yang telah dikurasi dan disiapkan khusus untuk Anda."}
+            </p>
           </div>
 
-          {/* Rating */}
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-1">
-              <span className="font-medium">4.8</span>
-              <div className="flex text-yellow-400">
-                {"★★★★★".split("").map((star, i) => (
-                  <span key={i}>{star}</span>
+          {/* Price */}
+          <div className="bg-gray-50 p-5 rounded-xl border border-gray-100">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl font-extrabold text-blue-950">
+                Rp{product.price.toLocaleString("id-ID")}
+              </span>
+            </div>
+            <div className="mt-3 flex items-center gap-2 text-sm">
+              <span className="text-green-600 bg-green-100 px-2 py-1 rounded font-medium flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                Kondisi Sangat Baik
+              </span>
+              <span className="text-gray-500">
+                • 1 Item Tersedia
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-5 py-4 border-t border-b border-gray-100">
+            {/* Color Selection */}
+            <div>
+              <div className="text-sm font-semibold text-gray-800 mb-3 flex items-center justify-between">
+                Warna <span className="font-normal text-gray-500 text-xs">{selectedColor}</span>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {product.colors.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setSelectedColor(color)}
+                    className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
+                      selectedColor === color
+                        ? "border-blue-950 bg-blue-50 text-blue-950 shadow-sm"
+                        : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    {color}
+                  </button>
                 ))}
               </div>
             </div>
-            <div className="text-gray-500">1,4RB Penilaian</div>
-            <div className="text-gray-500">4RB+ Terjual ⓘ</div>
-          </div>
 
-          <button className="text-sm text-gray-600 hover:text-gray-800">
-            Laporkan
-          </button>
-
-          {/* Price */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-bold text-orange-600">
-                Rp59.900
-              </span>
-              <span className="text-3xl font-bold text-orange-600">-</span>
-              <span className="text-3xl font-bold text-orange-600">
-                Rp72.000
-              </span>
-              <span className="text-gray-400 line-through text-sm">
-                Rp150.000
-              </span>
-              <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded">
-                -60%
-              </span>
-            </div>
-            <div className="mt-2 flex items-center gap-2 text-sm">
-              <span className="bg-orange-100 text-orange-600 px-2 py-1 rounded font-medium">
-                12.12
-              </span>
-              <span className="text-gray-700">
-                Spesial 12 Des <span className="font-medium">Rp70.500</span>{" "}
-                00:00, 12 Des
-              </span>
-            </div>
-          </div>
-
-          {/* Shipping */}
-          <div className="space-y-2 text-sm">
-            <div className="flex items-start gap-2">
-              <span className="text-gray-600 min-w-[100px]">Pengiriman</span>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 text-gray-800">
-                  <span>🚚</span>
-                  <span>Garansi tiba 12 - 14 Desember</span>
-                  <ChevronRight size={16} />
-                </div>
-                <div className="text-gray-500 mt-1">
-                  Dapatkan Voucher s/d Rp10.000 jika pesanan terlambat.
-                </div>
+            {/* Size Selection */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold text-gray-800">Ukuran <span className="font-normal text-gray-500 text-xs ml-1">{selectedSize}</span></span>
               </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-gray-600 min-w-[100px]">
-                Jaminan Shopee
-              </span>
-              <div className="flex items-center gap-2 text-gray-800">
-                <span>❤️</span>
-                <span>COD-Cek Dulu</span>
-                <span>Proteksi Kerusakan +</span>
-                <ChevronRight size={16} />
+              
+              <div className="flex flex-wrap gap-3">
+                {product.sizes.map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => setSelectedSize(size)}
+                    className={`min-w-[3rem] px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
+                      selectedSize === size
+                        ? "border-blue-950 bg-blue-950 text-white shadow-sm"
+                        : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
               </div>
-            </div>
-          </div>
-
-          {/* Color Selection */}
-          <div>
-            <div className="text-sm text-gray-600 mb-3">Warna</div>
-            <div className="grid grid-cols-4 gap-2">
-              {colors.map((color) => (
-                <button
-                  key={color.name}
-                  onClick={() => setSelectedColor(color.name)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded border text-sm ${
-                    selectedColor === color.name
-                      ? "border-orange-500 bg-orange-50"
-                      : "border-gray-300 hover:border-gray-400"
-                  }`}
-                >
-                  <div
-                    className={`w-5 h-5 rounded ${color.color} border border-gray-300`}
-                  ></div>
-                  <span className="text-xs text-gray-700 truncate">
-                    {color.name}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Size Selection */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-gray-600">Ukuran</span>
-              <button className="text-sm text-blue-600 flex items-center gap-1">
-                Tabel Ukuran <ChevronRight size={14} />
-              </button>
             </div>
             
-            <div className="flex gap-2">
-              {sizes.map((size) => (
-                <button
-                  key={size}
-                  onClick={() => setSelectedSize(size)}
-                  className={`px-6 py-2 rounded border text-sm font-medium ${
-                    selectedSize === size
-                      ? "border-orange-500 bg-orange-50 text-orange-600"
-                      : "border-gray-300 text-gray-700 hover:border-gray-400"
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
+            {/* Materials */}
+            {product.materials && (
+              <div>
+                <span className="text-sm font-semibold text-gray-800">Bahan:</span>
+                <span className="text-sm text-gray-600 ml-2">{product.materials.join(", ")}</span>
+              </div>
+            )}
           </div>
+          
+          <button 
+            onClick={handleAddToCart}
+            className="w-full py-4 bg-blue-950 text-white font-bold text-lg rounded-xl hover:bg-blue-900 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex justify-center items-center gap-2 mt-4"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            Masukkan ke Keranjang
+          </button>
+          
         </div>
       </div>
     </div>
