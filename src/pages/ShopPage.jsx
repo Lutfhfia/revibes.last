@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { products } from "../data/products";
+import { useDatabase } from "../context/DatabaseContext";
 
 export default function ShopPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get("search") || "";
 
+  const { products } = useDatabase();
   const [filteredProducts, setFilteredProducts] = useState(products);
 
   useEffect(() => {
@@ -21,7 +22,7 @@ export default function ShopPage() {
     } else {
       setFilteredProducts(products);
     }
-  }, [searchQuery]);
+  }, [searchQuery, products]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">

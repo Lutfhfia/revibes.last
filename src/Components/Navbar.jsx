@@ -1,15 +1,22 @@
-import { CodeXml, MessageCircle, ShoppingBag } from "lucide-react";
+import { MessageCircle, ShoppingBag, User } from "lucide-react";
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const { currentUser, logout } = useAuth();
 
   const handleSearch = (e) => {
     if (e.key === "Enter") {
       navigate(`/shop?search=${encodeURIComponent(searchQuery)}`);
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
   };
 
   return (
@@ -50,44 +57,93 @@ function Navbar() {
           />
         </label>
 
-        <ul className="hidden md:flex gap-8 items-center ml-auto mr-6">
-          <li>
-            <a href="/" className="hover:text-blue-600 transition font-medium text-gray-700">
-              Home
-            </a>
-          </li>
-          <li>
-            <a href="/shop" className="hover:text-blue-600 transition font-medium text-gray-700">
-              Shop
-            </a>
-          </li>
-          <li>
-            <a href="/about" className="hover:text-blue-600 transition font-medium text-gray-700">
-              About
-            </a>
-          </li>
-          <li>
-            <a href="/kontak" className="hover:text-blue-600 transition font-medium text-gray-700">
-              Contact
-            </a>
-          </li>
-          <li>
-            <a href="/cart" className="hover:text-blue-600 transition text-gray-700 relative">
-              <ShoppingBag size={22} />
-            </a>
-          </li>
-          <li>
-            <a href="/pesan" className="hover:text-blue-600 transition text-gray-700">
-              <MessageCircle size={22} />
-            </a>
-          </li>
-        </ul>
-        <a
-          href="#"
-          className="bg-blue-950 px-5 py-2 text-white rounded-full hover:bg-blue-800 transition font-medium shadow-md"
-        >
-          Login
-        </a>
+        {currentUser?.role === 'admin' ? (
+          <ul className="hidden md:flex gap-8 items-center ml-auto mr-6">
+            <li>
+              <Link to="/admin/dashboard" className="hover:text-blue-600 transition font-medium text-gray-700">
+                Dashboard
+              </Link>
+            </li>
+            <li>
+              <Link to="/admin/orders" className="hover:text-blue-600 transition font-medium text-gray-700">
+                Pesanan
+              </Link>
+            </li>
+            <li>
+              <Link to="/admin/products" className="hover:text-blue-600 transition font-medium text-gray-700">
+                Produk
+              </Link>
+            </li>
+            <li>
+              <Link to="/admin/chat" className="hover:text-blue-600 transition text-gray-700 relative flex items-center gap-1">
+                <MessageCircle size={20} />
+                <span className="font-medium">Pesan Masuk</span>
+              </Link>
+            </li>
+          </ul>
+        ) : (
+          <ul className="hidden md:flex gap-8 items-center ml-auto mr-6">
+            <li>
+              <Link to="/" className="hover:text-blue-600 transition font-medium text-gray-700">
+                Home
+              </Link>
+            </li>
+            <li>
+              <Link to="/shop" className="hover:text-blue-600 transition font-medium text-gray-700">
+                Shop
+              </Link>
+            </li>
+            <li>
+              <Link to="/about" className="hover:text-blue-600 transition font-medium text-gray-700">
+                About
+              </Link>
+            </li>
+            <li>
+              <Link to="/kontak" className="hover:text-blue-600 transition font-medium text-gray-700">
+                Contact
+              </Link>
+            </li>
+            <li>
+              <Link to="/cart" className="hover:text-blue-600 transition text-gray-700 relative">
+                <ShoppingBag size={22} />
+              </Link>
+            </li>
+          </ul>
+        )}
+        
+        <div className="flex items-center gap-3">
+          {currentUser ? (
+            <div className="dropdown dropdown-end">
+              <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar border border-gray-200">
+                <div className="w-10 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center">
+                  <User size={24} className="mt-2 ml-2" />
+                </div>
+              </div>
+              <ul tabIndex={0} className="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52">
+                <li className="px-4 py-2 font-semibold text-gray-700 border-b mb-2">{currentUser.name}</li>
+                {currentUser.role === 'admin' ? (
+                  <>
+                    <li><Link to="/admin/dashboard">Admin Dashboard</Link></li>
+                    <li><Link to="/admin/products/add">Tambah Produk</Link></li>
+                  </>
+                ) : (
+                  <>
+                    <li><Link to="/profile">Profil Saya</Link></li>
+                    <li><Link to="/my-orders">Riwayat Pesanan</Link></li>
+                  </>
+                )}
+                <li className="border-t mt-2 pt-2"><button onClick={handleLogout} className="text-red-500 font-medium">Logout</button></li>
+              </ul>
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className="bg-blue-950 px-5 py-2 text-white rounded-full hover:bg-blue-800 transition font-medium shadow-md"
+            >
+              Login
+            </Link>
+          )}
+        </div>
       </div>
     </header>
   );

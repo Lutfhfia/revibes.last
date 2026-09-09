@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Heart, Share2, ChevronRight, ArrowLeft } from "lucide-react";
+import { Heart, Share2, ArrowLeft } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 export default function ProductDetail() {
@@ -7,6 +7,15 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   
   const product = location.state?.product;
+  const productColors = Array.isArray(product?.colors) && product.colors.length > 0
+    ? product.colors
+    : ["Hitam", "Putih"];
+  const productSizes = Array.isArray(product?.sizes) && product.sizes.length > 0
+    ? product.sizes
+    : ["M", "L", "XL"];
+  const productMaterials = Array.isArray(product?.materials) && product.materials.length > 0
+    ? product.materials
+    : ["Bahan standar"];
 
   // Redirect if accessed directly without product data
   useEffect(() => {
@@ -15,15 +24,16 @@ export default function ProductDetail() {
     }
   }, [product, navigate]);
 
-  if (!product) return null;
-
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedColor, setSelectedColor] = useState(product.colors[0] || "");
-  const [selectedSize, setSelectedSize] = useState(product.sizes[0] || "");
+  const [selectedColor, setSelectedColor] = useState(productColors[0]);
+  const [selectedSize, setSelectedSize] = useState(productSizes[0]);
   const [isFavorite, setIsFavorite] = useState(false);
 
-  // Use the same image for thumbnails since we only have one image per product for now
-  const images = [product.image, product.image, product.image];
+  if (!product) return null;
+
+  const images = Array.isArray(product.images) && product.images.length > 0
+    ? product.images
+    : [product.image];
 
   const handleAddToCart = () => {
     if (!selectedSize) {
@@ -43,10 +53,10 @@ export default function ProductDetail() {
       productId: product.id,
       name: product.name,
       price: product.price,
-      image: product.image,
+      image: images[selectedImage] || product.image,
       size: selectedSize,
       color: selectedColor,
-      material: product.materials ? product.materials[0] : "Bahan standar",
+      material: productMaterials[0],
       quantity: 1,
     };
 
@@ -163,7 +173,7 @@ export default function ProductDetail() {
                 Warna <span className="font-normal text-gray-500 text-xs">{selectedColor}</span>
               </div>
               <div className="flex flex-wrap gap-3">
-                {product.colors.map((color) => (
+                {productColors.map((color) => (
                   <button
                     key={color}
                     onClick={() => setSelectedColor(color)}
@@ -186,7 +196,7 @@ export default function ProductDetail() {
               </div>
               
               <div className="flex flex-wrap gap-3">
-                {product.sizes.map((size) => (
+                {productSizes.map((size) => (
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
@@ -203,10 +213,10 @@ export default function ProductDetail() {
             </div>
             
             {/* Materials */}
-            {product.materials && (
+            {productMaterials.length > 0 && (
               <div>
                 <span className="text-sm font-semibold text-gray-800">Bahan:</span>
-                <span className="text-sm text-gray-600 ml-2">{product.materials.join(", ")}</span>
+                <span className="text-sm text-gray-600 ml-2">{productMaterials.join(", ")}</span>
               </div>
             )}
           </div>
