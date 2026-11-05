@@ -11,11 +11,7 @@ export function DatabaseProvider({ children }) {
   const [orders, setOrders] = useState([]);
   const [chats, setChats] = useState([]);
 
-  // DIBENERIN: Pakai URL relatif di Vercel, tetap localhost saat di laptop sendiri
-  const API_URL =
-    process.env.NODE_ENV === "production"
-      ? "/api"
-      : "http://localhost:5000/api";
+  const API_URL = "http://localhost:5000/api";
 
   const fetchData = async () => {
     try {

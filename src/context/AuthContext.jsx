@@ -12,11 +12,7 @@ export function AuthProvider({ children }) {
     return saved ? JSON.parse(saved) : null;
   });
 
-  // DIBENERIN: Pakai URL relatif di Vercel, tetap localhost saat di laptop sendiri
-  const API_URL =
-    process.env.NODE_ENV === "production"
-      ? "/api/auth"
-      : "http://localhost:5000/api/auth";
+  const API_URL = "http://localhost:5000/api/auth";
 
   useEffect(() => {
     if (currentUser) {
