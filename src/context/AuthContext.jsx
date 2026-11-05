@@ -36,13 +36,21 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ email: email.trim(), password }),
       });
     } catch {
-      throw new Error(
-        "Backend belum aktif. Jalankan dulu: node backend/server.js",
-      );
+      throw new Error("Gagal terhubung ke server backend.");
     }
 
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error);
+    // Ambil text dulu untuk memastikan ada isinya
+    const text = await response.text();
+    let data;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      throw new Error("Respon dari server tidak valid.");
+    }
+
+    if (!response.ok) {
+      throw new Error(data.error || "Terjadi kesalahan saat login.");
+    }
 
     setCurrentUser(data);
     return data;
