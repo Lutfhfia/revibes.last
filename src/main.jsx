@@ -22,6 +22,7 @@
   import LoginPage from "./pages/auth/LoginPage";
   import RegisterPage from "./pages/auth/RegisterPage";
   import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+  import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
   import ProfilePage from "./pages/auth/ProfilePage";
   import MyOrdersPage from "./pages/auth/MyOrdersPage";
   import UserChat from "./pages/auth/UserChat";
@@ -61,6 +62,10 @@
                 <Route
                   path="forgot-password"
                   element={<ForgotPasswordPage />}
+                />
+                <Route
+                  path="reset-password"
+                  element={<ResetPasswordPage />}
                 />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="my-orders" element={<MyOrdersPage />} />

@@ -1,4 +1,5 @@
 import React from "react";
+import { Mail, Package, Sprout } from "lucide-react";
 
 function Pack() {
   return (
@@ -7,7 +8,7 @@ function Pack() {
         Packaging Alvi Thrift Shop
       </h1>
       <p className="text-center text-base sm:text-lg text-gray-600">
-        Apa saja yang kamu dapatkan saat membeli produk dari kami? 💚
+        Apa saja yang kamu dapatkan saat membeli produk dari kami?
       </p>
 
       <div className="bg-green-50 p-4 rounded-xl border border-green-200 text-green-800 text-sm sm:text-base text-center">
@@ -16,7 +17,7 @@ function Pack() {
           teknik <strong>jahit dan lukis tangan</strong>. Kami percaya bahwa
           fashion bisa tetap stylish sambil peduli bumi. Dengan memilih produk
           kami, kamu sudah ikut mengurangi <strong>limbah tekstil</strong> dan
-          mendukung bumi yang lebih sehat 🌍.
+          mendukung bumi yang lebih sehat.
         </p>
       </div>
 
@@ -29,12 +30,15 @@ function Pack() {
             className="rounded-xl shadow-md w-full"
           />
           <h2 className="text-xl font-semibold text-gray-800">
-            🌱 Hang Tag Ramah Lingkungan
+            <span className="flex items-center gap-2">
+              <Sprout size={20} aria-hidden="true" />
+              Hang Tag Ramah Lingkungan
+            </span>
           </h2>
           <p className="text-gray-600 text-sm sm:text-base">
             Hang tag ini dibuat dari <strong>kertas daur ulang</strong> dan
             mengandung benih tanaman. Setelah dipakai, kamu bisa menanamnya dan
-            lihat ia tumbuh menjadi tanaman baru. 🌱✨
+            lihat ia tumbuh menjadi tanaman baru.
           </p>
         </div>
 
@@ -46,7 +50,10 @@ function Pack() {
             className="rounded-xl shadow-md w-full"
           />
           <h2 className="text-xl font-semibold text-gray-800">
-            📦 Box dari Kertas Daur Ulang
+            <span className="flex items-center gap-2">
+              <Package size={20} aria-hidden="true" />
+              Box dari Kertas Daur Ulang
+            </span>
           </h2>
           <p className="text-gray-600 text-sm sm:text-base">
             Setiap produk kamu akan dibungkus dalam box eksklusif berbahan dasar{" "}
@@ -63,12 +70,15 @@ function Pack() {
             className="rounded-xl shadow-md w-full"
           />
           <h2 className="text-xl font-semibold text-gray-800">
-            💌 Thank You Card Spesial
+            <span className="flex items-center gap-2">
+              <Mail size={20} aria-hidden="true" />
+              Thank You Card Spesial
+            </span>
           </h2>
           <p className="text-gray-600 text-sm sm:text-base">
-            Kartu ucapan ini terbuat dari <strong>kertas daur ulang</strong>,dan
+            Kartu ucapan ini terbuat dari <strong>kertas daur ulang</strong>, dan
             mengandung benih tanaman. Berisi pesan tulus untukmu yang telah ikut
-            berkontribusi pada gerakan fashion berkelanjutan bersama kami. 🌿
+            berkontribusi pada gerakan fashion berkelanjutan bersama kami.
           </p>
         </div>
       </div>
@@ -77,7 +87,7 @@ function Pack() {
         <p className="text-gray-700 text-sm sm:text-base">
           Dengan setiap pembelian, kamu bukan hanya mendapatkan produk fashion
           rework yang unik dan artistik, tapi juga turut menjaga bumi tetap
-          bersih dari limbah tekstil. 💚 Terima kasih telah memilih{" "}
+          bersih dari limbah tekstil. Terima kasih telah memilih{" "}
           <strong>Alvi Thrift Shop</strong>!
         </p>
       </div>

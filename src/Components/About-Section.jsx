@@ -1,4 +1,5 @@
 import React from 'react'
+import { Gem, Leaf, Scissors } from 'lucide-react';
 
 function AboutSection() {
   return (
@@ -20,48 +21,47 @@ function AboutSection() {
               Tentang Kami
             </h2>
             <p className="text-gray-700 mb-6 leading-relaxed">
-              Selamat datang di <strong>TokoHoodie</strong> — destinasi
-              utama Anda untuk fashion hoodie yang nyaman, stylish, dan
-              ramah lingkungan. Kami berdedikasi menyediakan produk
-              berkualitas tinggi dengan desain yang unik dan bahan pilihan
-              terbaik.
+              Selamat datang di <strong>Revibes Thrift Shop</strong> —
+              destinasi fashion thrift dan rework dengan pilihan produk unik.
+              Kami ingin memberi pakaian layak pakai cerita baru melalui
+              sentuhan desain yang kreatif dan nyaman digunakan.
             </p>
 
             <div className="space-y-4">
               <div className="flex items-start gap-3">
-                <div className="text-blue-950 text-xl">💎</div>
+                <Gem className="mt-1 text-blue-950" size={20} aria-hidden="true" />
                 <div>
                   <h4 className="font-semibold text-blue-950">
-                    Kualitas Premium
+                    Pilihan Berkualitas
                   </h4>
                   <p className="text-gray-600">
-                    Kami hanya menggunakan bahan terbaik seperti katun
-                    organik dan poliester daur ulang.
+                    Setiap produk dipilih dengan cermat agar tetap nyaman,
+                    menarik, dan layak digunakan.
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="text-blue-950 text-xl">🌱</div>
+                <Leaf className="mt-1 text-blue-950" size={20} aria-hidden="true" />
                 <div>
                   <h4 className="font-semibold text-blue-950">
                     Ramah Lingkungan
                   </h4>
                   <p className="text-gray-600">
-                    Proses produksi kami minim limbah dan mendukung
-                    keberlanjutan bumi.
+                    Memperpanjang usia pakaian membantu mengurangi limbah
+                    tekstil.
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="text-blue-950 text-xl">🧵</div>
+                <Scissors className="mt-1 text-blue-950" size={20} aria-hidden="true" />
                 <div>
                   <h4 className="font-semibold text-blue-950">
                     Desain Eksklusif
                   </h4>
                   <p className="text-gray-600">
-                    Setiap hoodie dirancang dengan detail unik, cocok untuk
+                    Setiap produk memiliki detail unik, cocok untuk
                     segala gaya dan suasana.
                   </p>
                 </div>

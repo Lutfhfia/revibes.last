@@ -1,15 +1,24 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { Buffer } from "buffer";
+import { createHash, randomBytes } from "crypto";
+import nodemailer from "nodemailer";
 import db from "./db.js";
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const uploadsDir = path.join(__dirname, "uploads", "products");
+const resetEmailMessage =
+  "Jika email terdaftar, tautan untuk mengatur ulang password akan dikirim.";
+const resetRequestTimes = new Map();
+const resetRequestWindowMs = 15 * 60 * 1000;
+const resetRequestLimit = 5;
+let mailTransporter;
 
 app.use(cors());
 app.use(express.json({ limit: "25mb" }));
@@ -62,7 +71,10 @@ app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
     const [rows] = await db.query(
-      "SELECT * FROM users WHERE email = ? AND password = ?",
+      `SELECT id, name, email, phone, address, role
+       FROM users
+       WHERE email = ? AND password = ?
+       LIMIT 1`,
       [email.trim(), password],
     );
 
@@ -81,9 +93,10 @@ app.post("/api/auth/register", async (req, res) => {
     const { name, email, password } = req.body;
 
     // Check if email exists
-    const [existing] = await db.query("SELECT * FROM users WHERE email = ?", [
-      email,
-    ]);
+    const [existing] = await db.query(
+      "SELECT id FROM users WHERE email = ?",
+      [email],
+    );
     if (existing.length > 0) {
       return res.status(400).json({ error: "Email sudah terdaftar" });
     }
@@ -93,12 +106,170 @@ app.post("/api/auth/register", async (req, res) => {
       [name, email, password, "user"],
     );
 
-    const [newUser] = await db.query("SELECT * FROM users WHERE id = ?", [
-      result.insertId,
-    ]);
+    const [newUser] = await db.query(
+      "SELECT id, name, email, phone, address, role FROM users WHERE id = ?",
+      [result.insertId],
+    );
     res.json(newUser[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/auth/forgot-password", async (req, res) => {
+  const email = req.body?.email;
+  if (typeof email !== "string" || !email.trim()) {
+    return res.status(400).json({ error: "Alamat email wajib diisi." });
+  }
+
+  const now = Date.now();
+  for (const [ip, timestamps] of resetRequestTimes) {
+    const recentRequests = timestamps.filter(
+      (timestamp) => now - timestamp < resetRequestWindowMs,
+    );
+    if (recentRequests.length === 0) {
+      resetRequestTimes.delete(ip);
+    } else {
+      resetRequestTimes.set(ip, recentRequests);
+    }
+  }
+  const recentRequests = resetRequestTimes.get(req.ip) || [];
+  if (recentRequests.length >= resetRequestLimit) {
+    return res.status(429).json({
+      error: "Terlalu banyak permintaan. Coba lagi dalam 15 menit.",
+    });
+  }
+  recentRequests.push(now);
+  resetRequestTimes.set(req.ip, recentRequests);
+
+  const { SMTP_HOST, SMTP_USER, SMTP_PASSWORD } = process.env;
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASSWORD) {
+    return res.status(503).json({
+      error:
+        "Email reset belum dikonfigurasi. Isi SMTP_HOST, SMTP_USER, dan SMTP_PASSWORD di file .env, lalu restart backend.",
+    });
+  }
+
+  try {
+    const [users] = await db.query(
+      "SELECT id, email FROM users WHERE email = ? LIMIT 1",
+      [email.trim()],
+    );
+    if (users.length === 0) {
+      return res.json({ message: resetEmailMessage });
+    }
+
+    const user = users[0];
+    const token = randomBytes(32).toString("hex");
+    const tokenHash = createHash("sha256").update(token).digest("hex");
+    const frontendUrl = new URL(
+      process.env.FRONTEND_URL || "http://localhost:5173",
+    );
+    if (!["http:", "https:"].includes(frontendUrl.protocol)) {
+      throw new Error("FRONTEND_URL must use HTTP or HTTPS.");
+    }
+    frontendUrl.pathname = "/reset-password";
+    frontendUrl.search = "";
+    frontendUrl.hash = "";
+    frontendUrl.searchParams.set("token", token);
+    const resetUrl = frontendUrl.toString();
+
+    await db.query(
+      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, used_at)
+       VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 MINUTE), NULL)
+       ON DUPLICATE KEY UPDATE
+         token_hash = VALUES(token_hash),
+         expires_at = VALUES(expires_at),
+         used_at = NULL,
+         created_at = CURRENT_TIMESTAMP`,
+      [user.id, tokenHash],
+    );
+
+    try {
+      mailTransporter ??= nodemailer.createTransport({
+        host: SMTP_HOST,
+        port: Number(process.env.SMTP_PORT || 465),
+        secure: process.env.SMTP_SECURE
+          ? process.env.SMTP_SECURE === "true"
+          : Number(process.env.SMTP_PORT || 465) === 465,
+        auth: { user: SMTP_USER, pass: SMTP_PASSWORD },
+      });
+
+      await mailTransporter.sendMail({
+        from: process.env.SMTP_FROM || SMTP_USER,
+        to: user.email,
+        subject: "Atur ulang password Revibes",
+        text: `Kami menerima permintaan untuk mengatur ulang password akun Anda.\n\nBuka tautan ini dalam 30 menit:\n${resetUrl}\n\nJika Anda tidak meminta reset password, abaikan email ini.`,
+        html: `<p>Kami menerima permintaan untuk mengatur ulang password akun Anda.</p><p><a href="${resetUrl}">Atur ulang password</a></p><p>Tautan berlaku selama 30 menit. Jika Anda tidak meminta reset password, abaikan email ini.</p>`,
+        disableFileAccess: true,
+        disableUrlAccess: true,
+      });
+    } catch (error) {
+      await db.query(
+        "DELETE FROM password_reset_tokens WHERE user_id = ? AND token_hash = ?",
+        [user.id, tokenHash],
+      );
+      throw error;
+    }
+
+    return res.json({ message: resetEmailMessage });
+  } catch (error) {
+    console.error("Password reset email failed:", error);
+    return res
+      .status(500)
+      .json({ error: "Email reset gagal dikirim. Coba lagi nanti." });
+  }
+});
+
+app.post("/api/auth/reset-password", async (req, res) => {
+  const { token, password } = req.body ?? {};
+  if (typeof token !== "string" || !token || typeof password !== "string") {
+    return res.status(400).json({ error: "Tautan reset tidak valid." });
+  }
+  if (password.length < 8) {
+    return res
+      .status(400)
+      .json({ error: "Password baru minimal 8 karakter." });
+  }
+
+  let connection;
+  try {
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    const [tokens] = await connection.execute(
+      `SELECT id, user_id
+       FROM password_reset_tokens
+       WHERE token_hash = ? AND expires_at > NOW() AND used_at IS NULL
+       FOR UPDATE`,
+      [createHash("sha256").update(token).digest("hex")],
+    );
+    if (tokens.length === 0) {
+      await connection.rollback();
+      return res
+        .status(400)
+        .json({ error: "Tautan reset tidak valid atau sudah kedaluwarsa." });
+    }
+
+    await connection.execute("UPDATE users SET password = ? WHERE id = ?", [
+      password,
+      tokens[0].user_id,
+    ]);
+    await connection.execute(
+      "UPDATE password_reset_tokens SET used_at = NOW() WHERE id = ?",
+      [tokens[0].id],
+    );
+    await connection.commit();
+
+    return res.json({ message: "Password berhasil diperbarui." });
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error("Password reset failed:", error);
+    return res
+      .status(500)
+      .json({ error: "Password gagal diperbarui. Coba lagi nanti." });
+  } finally {
+    connection?.release();
   }
 });
 
@@ -110,7 +281,7 @@ app.put("/api/auth/update", async (req, res) => {
       [name, phone, address, email],
     );
     const [updatedUser] = await db.query(
-      "SELECT * FROM users WHERE email = ?",
+      "SELECT id, name, email, phone, address, role FROM users WHERE email = ?",
       [email],
     );
     res.json(updatedUser[0]);
@@ -414,9 +585,27 @@ app.post("/api/chats", async (req, res) => {
   try {
     const { senderEmail, receiverEmail, text } = req.body;
 
-    if (!senderEmail || !receiverEmail || !text || !text.trim()) {
+    if (
+      typeof senderEmail !== "string" ||
+      typeof receiverEmail !== "string" ||
+      typeof text !== "string" ||
+      !senderEmail.trim() ||
+      !receiverEmail.trim() ||
+      !text.trim()
+    ) {
       return res.status(400).json({
         error: "Pengirim, penerima, dan pesan wajib diisi.",
+      });
+    }
+
+    const [participants] = await db.query(
+      "SELECT email FROM users WHERE email IN (?, ?)",
+      [senderEmail.trim(), receiverEmail.trim()],
+    );
+    if (participants.length !== 2) {
+      return res.status(400).json({
+        error:
+          "Akun chat tidak ditemukan di database lokal. Daftar atau login ulang saat backend lokal aktif.",
       });
     }
 
@@ -428,13 +617,13 @@ app.post("/api/chats", async (req, res) => {
       (sender_email, receiver_email, text)
       VALUES (?, ?, ?)
       `,
-      [senderEmail, receiverEmail, cleanText],
+      [senderEmail.trim(), receiverEmail.trim(), cleanText],
     );
 
     res.status(201).json({
       id: result.insertId,
-      senderEmail,
-      receiverEmail,
+      senderEmail: senderEmail.trim(),
+      receiverEmail: receiverEmail.trim(),
       text: cleanText,
       timestamp: new Date().toISOString(),
     });

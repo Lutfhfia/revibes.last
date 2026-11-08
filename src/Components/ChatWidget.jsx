@@ -1,35 +1,84 @@
-import React, { useState } from 'react';
-import { MessageCircle, X, Send } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { AlertCircle, LoaderCircle, MessageCircle, Send, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../context/DatabaseContext';
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
+  const [admin, setAdmin] = useState(null);
+  const [adminError, setAdminError] = useState('');
+  const [isSending, setIsSending] = useState(false);
   const { currentUser } = useAuth();
   const { chats, sendMessage } = useDatabase();
+  const messagesEndRef = useRef(null);
+
+  const userEmail = currentUser ? currentUser.email : 'guest';
+
+  useEffect(() => {
+    if (!currentUser || currentUser.role === 'admin') return undefined;
+
+    const controller = new AbortController();
+    const fetchAdmin = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/admin', {
+          signal: controller.signal,
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Admin belum tersedia.');
+        }
+        setAdmin(data);
+        setAdminError('');
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setAdmin(null);
+          setAdminError(error.message || 'Gagal menghubungkan ke admin.');
+        }
+      }
+    };
+
+    fetchAdmin();
+    return () => controller.abort();
+  }, [currentUser]);
+
+  // Filter messages involving this user
+  const myChats = chats.filter(
+    (chat) =>
+      (chat.senderEmail === userEmail && chat.receiverEmail === admin?.email) ||
+      (chat.receiverEmail === userEmail && chat.senderEmail === admin?.email)
+  );
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [myChats.length, isOpen]);
 
   // Don't show widget for admin, they have a dedicated page
   if (currentUser?.role === 'admin') return null;
 
-  const userEmail = currentUser ? currentUser.email : 'guest';
-
-  // Filter messages involving this user
-  const myChats = chats.filter(
-    (c) => c.senderEmail === userEmail || c.receiverRole === userEmail
-  );
-
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
-    if (!message.trim()) return;
+    if (!message.trim() || isSending) return;
 
     if (!currentUser) {
-      alert("Anda harus login untuk mengirim pesan.");
       return;
     }
 
-    sendMessage(currentUser.email, 'admin', message);
-    setMessage('');
+    if (!admin?.email) {
+      setAdminError('Admin belum tersedia. Pastikan backend lokal aktif.');
+      return;
+    }
+
+    try {
+      setIsSending(true);
+      await sendMessage(currentUser.email, admin.email, message.trim());
+      setMessage('');
+      setAdminError('');
+    } catch (error) {
+      setAdminError(error.message || 'Gagal mengirim pesan.');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -54,7 +103,7 @@ export default function ChatWidget() {
               <h3 className="font-semibold">Chat dengan Admin</h3>
             </div>
             <button onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-white transition">
-              <X size={20} />
+              <X size={20} aria-hidden="true" />
             </button>
           </div>
 
@@ -80,6 +129,18 @@ export default function ChatWidget() {
                 Silakan login untuk mulai mengirim pesan.
               </div>
             )}
+            {currentUser && !admin && (
+              <div role="alert" className="bg-orange-50 text-orange-700 text-xs p-3 rounded-lg text-center">
+                {adminError || 'Menghubungkan ke admin...'}
+              </div>
+            )}
+            {adminError && admin && (
+              <div role="alert" className="flex items-center gap-2 bg-red-50 text-red-600 text-xs p-3 rounded-lg">
+                <AlertCircle size={16} aria-hidden="true" />
+                {adminError}
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Input */}
@@ -91,14 +152,18 @@ export default function ChatWidget() {
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Tulis pesan..."
                 className="flex-1 bg-gray-100 rounded-full px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                disabled={!currentUser}
+                disabled={!currentUser || !admin || isSending}
               />
               <button
                 type="submit"
-                disabled={!currentUser || !message.trim()}
+                disabled={!currentUser || !admin || !message.trim() || isSending}
                 className="bg-blue-950 text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-blue-800 transition disabled:opacity-50"
               >
-                <Send size={18} className="ml-[-2px]" />
+                {isSending ? (
+                  <LoaderCircle size={18} className="animate-spin" />
+                ) : (
+                  <Send size={18} className="ml-[-2px]" />
+                )}
               </button>
             </form>
           </div>

@@ -6,7 +6,7 @@ import { Send, User, MessageCircle, Clock } from "lucide-react";
 
 export default function UserChat() {
   const { currentUser } = useAuth();
-  const { chats, sendMessage, getChatBetween } = useDatabase();
+  const { sendMessage, getChatBetween } = useDatabase();
   const navigate = useNavigate();
 
   const [message, setMessage] = useState("");

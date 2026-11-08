@@ -48,7 +48,7 @@ function Footer() {
           </a>
           <a
             className="link link-hover text-pink-500"
-            href="https://www.instagram.com/alvi.thrift.store/"
+            href="https://www.instagram.com/revibes.co_/"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -56,7 +56,7 @@ function Footer() {
           </a>
           <a
             className="link link-hover text-black"
-            href="https://www.tiktok.com/@alviii.thrift.store?_t=ZS-8wssHnGsEE6&_r=1"
+            href="https://www.tiktok.com/@revibes.thrift"
             target="_blank"
             rel="noopener noreferrer"
           >

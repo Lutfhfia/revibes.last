@@ -9,7 +9,15 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem("thriftShopUser");
-    return saved ? JSON.parse(saved) : null;
+    if (!saved) return null;
+
+    const user = JSON.parse(saved);
+    if (user && typeof user === "object" && "password" in user) {
+      delete user.password;
+      localStorage.setItem("thriftShopUser", JSON.stringify(user));
+    }
+
+    return user;
   });
 
   const API_URL = "http://localhost:5000/api/auth";
@@ -82,12 +90,42 @@ export function AuthProvider({ children }) {
     setCurrentUser(data);
   };
 
+  const requestPasswordReset = async (email) => {
+    const response = await fetch(`${API_URL}/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim() }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || "Gagal mengirim email reset password.");
+    }
+
+    return data.message;
+  };
+
+  const resetPassword = async (token, password) => {
+    const response = await fetch(`${API_URL}/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, password }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || "Gagal mengatur ulang password.");
+    }
+
+    return data.message;
+  };
+
   const value = {
     currentUser,
     login,
     register,
     logout,
     updateProfile,
+    requestPasswordReset,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

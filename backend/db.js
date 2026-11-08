@@ -1,11 +1,14 @@
 import mysql from "mysql2/promise";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 // DB Configuration
 const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "", // Default Laragon password is empty
-  database: "db_revibes",
+  host: process.env.DB_HOST || "localhost",
+  user: process.env.DB_USER || "root",
+  password: process.env.DB_PASSWORD || "",
+  database: process.env.DB_NAME || "db_revibes",
 };
 
 // Create connection pool
@@ -44,23 +47,28 @@ async function initDB() {
       )
     `);
 
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL UNIQUE,
+        token_hash CHAR(64) NOT NULL UNIQUE,
+        expires_at DATETIME NOT NULL,
+        used_at DATETIME DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
     // Insert default Admin if users table is empty
     const [users] = await db.query("SELECT * FROM users WHERE email = ?", [
       "admin@alvi.com",
     ]);
     if (users.length === 0) {
-      // Note: In production, password should be hashed. For this mock, we keep it simple.
       await db.query(
         "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
         ["Administrator", "admin@alvi.com", "admin", "admin"],
       );
       console.log("Default admin created.");
-    } else if (users[0].password !== "admin" || users[0].role !== "admin") {
-      await db.query(
-        "UPDATE users SET name = ?, password = ?, role = ? WHERE email = ?",
-        ["Administrator", "admin", "admin", "admin@alvi.com"],
-      );
-      console.log("Default admin restored.");
     }
 
     // Create Products Table
@@ -164,6 +172,35 @@ async function initDB() {
         FOREIGN KEY (receiver_email) REFERENCES users(email) ON DELETE CASCADE
       )
     `);
+
+    const [chatColumns] = await db.query(
+      `SELECT COLUMN_NAME
+       FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'chats'`,
+      [dbConfig.database],
+    );
+    const existingChatColumns = chatColumns.map(
+      (column) => column.COLUMN_NAME,
+    );
+
+    if (
+      !existingChatColumns.includes("receiver_email") &&
+      existingChatColumns.includes("receiver_role")
+    ) {
+      await db.query(
+        "ALTER TABLE chats CHANGE COLUMN receiver_role receiver_email VARCHAR(255) NOT NULL",
+      );
+    }
+
+    const [adminAccounts] = await db.query(
+      "SELECT email FROM users WHERE role = 'admin' LIMIT 1",
+    );
+    if (adminAccounts.length > 0) {
+      await db.query(
+        "UPDATE chats SET receiver_email = ? WHERE receiver_email = 'admin'",
+        [adminAccounts[0].email],
+      );
+    }
 
     console.log("All tables synchronized successfully.");
     await db.end();
