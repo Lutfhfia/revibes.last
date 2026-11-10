@@ -30,7 +30,7 @@ function Navbar() {
         >
           <img className="size-12 gap-4 " src="/logo.png" alt="Logo" />
           <h1 className="font-bold text-xl text-blue-950">
-            REVIBES.THRIFT.SHOP.
+            ALVI.THRIFT.SHOP.
           </h1>
         </div>
 
